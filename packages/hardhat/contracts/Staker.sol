@@ -7,9 +7,11 @@ import "./ExampleExternalContract.sol";
 contract Staker {
 
   ExampleExternalContract public exampleExternalContract;
+  address public owner
 
   constructor(address exampleExternalContractAddress)  {
-      exampleExternalContract = ExampleExternalContract(exampleExternalContractAddress);
+    exampleExternalContract = ExampleExternalContract(exampleExternalContractAddress);
+    owner = msg.sender
   }
 
   // Collect funds in a payable `stake()` function and track individual `balances` with a mapping:
@@ -20,6 +22,9 @@ contract Staker {
   uint256 public constant threshold = 1 ether;
 
   function stake() public payable {
+    //Require amount to be > 0
+    require(msg.value > 0, "you cannot stake 0");
+
     balances[msg.sender] += msg.value;
     emit Stake(msg.sender, msg.value);
   }
@@ -28,7 +33,13 @@ contract Staker {
   // After some `deadline` allow anyone to call an `execute()` function
   //  It should either call `exampleExternalContract.complete{value: address(this).balance}()` to send all the value
   
-  function execute() public {
+  modifier onlyOwner() {
+    require(msg.sender == owner, "Only owner can perform this function");
+    _;
+  }
+
+  function execute() public onlyOwner {
+    //execution should only be done after deadline has been reached
     require(timeLeft() == 0, "Deadline hasn't been reached, time still dey");
 
     uint256 totalBalance = address(this).balance;
@@ -43,8 +54,8 @@ contract Staker {
     // Add a `withdraw()` function to let users withdraw their balance
   function withdraw() public {
 
-    // uint256 totalBalance = address(this).balance;
-    // require(totalBalance < threshold, "Threshold has been hit");
+    uint256 totalBalance = address(this).balance;
+    require(totalBalance < threshold, "Threshold has been hit");
 
     uint stakerBalance = balances[msg.sender];
     
